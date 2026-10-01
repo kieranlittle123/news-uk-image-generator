@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>News UK | Image Generator</title>
+    
+    <!-- Cropper.js CSS -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <!-- Google Fonts & Icons -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+
+    <style>
+        :root {
+            --bg-color: #f3f4f6;
+            --surface-color: #ffffff;
+            --text-main: #111827;
+            --text-muted: #6b7280;
+            --border-color: #e5e7eb;
+            --brand-main: #000000;
+            --brand-hover: #333333;
+            --brand-red: #E50000;
+            --success: #10b981;
+        }
+
+        [data-theme="dark"] {
+            --bg-color: #111827;
+            --surface-color: #1f2937;
+            --text-main: #f9fafb;
+            --text-muted: #9ca3af;
+            --border-color: #374151;
+            --brand-main: #ffffff;
+            --brand-hover: #e5e7eb;
+            --brand-red: #ff3333;
+        }
+
+        * { box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            margin: 0;
+            padding: 0;
+            transition: background-color 0.3s, color 0.3s;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Header */
+        header { background-color: var(--surface-color); border-bottom: 1px solid var(--border-color); padding: 16px 32px; display: flex; justify-content: space-between; align-items: center; }
+        .logo { font-size: 22px; font-weight: 900; letter-spacing: -0.5px; display: flex; align-items: center; gap: 8px; }
+        .logo-dot { width: 12px; height: 12px; background-color: var(--brand-red); border-radius: 50%; }
+        .header-title { font-weight: 400; color: var(--text-muted); margin-left: 10px; border-left: 1px solid var(--border-color); padding-left: 10px; }
+
+        button.icon-btn { background: none; border: none; color: var(--text-main); cursor: pointer; display: flex; align-items: center; justify-content: center; padding: 8px; border-radius: 8px; transition: background 0.2s; }
+        button.icon-btn:hover { background: var(--border-color); }
+
+        /* Main Layout */
+        .app-container { display: flex; flex: 1; max-width: 1400px; margin: 0 auto; width: 100%; padding: 32px; gap: 32px; }
+        .sidebar { width: 340px; flex-shrink: 0; display: flex; flex-direction: column; gap: 20px; }
+        .control-group { background-color: var(--surface-color); padding: 20px; border-radius: 12px; border: 1px solid var(--border-color); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+
+        label.main-label { display: block; font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 10px; color: var(--text-muted); }
+
+        input[type="text"], select { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border-color); background-color: var(--bg-color); color: var(--text-main); font-family: inherit; font-size: 14px; outline: none; }
+        select { cursor: pointer; }
+
+        /* File Upload */
+        .file-upload-wrapper { position: relative; border: 2px dashed var(--border-color); border-radius: 8px; padding: 24px 16px; text-align: center; cursor: pointer; transition: all 0.2s; background-color: var(--bg-color); }
+        .file-upload-wrapper:hover { border-color: var(--text-muted); background-color: var(--surface-color); }
+        .file-upload-wrapper input[type="file"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+        .upload-icon { font-size: 28px; color: var(--text-muted); margin-bottom: 4px; }
+
+        /* Color Controls */
+        .color-tools { display: flex; gap: 8px; align-items: center; }
+        input[type="color"] { -webkit-appearance: none; border: 1px solid var(--border-color); width: 42px; height: 42px; border-radius: 8px; cursor: pointer; padding: 2px; background: none; }
+        input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+        input[type="color"]::-webkit-color-swatch { border: none; border-radius: 6px; }
+
+        .btn-secondary { flex: 1; background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-main); padding: 10px; border-radius: 8px; font-size: 13px; font-weight: 500; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+        .btn-secondary:hover { background: var(--border-color); }
+
+        .compact-checkbox { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: var(--text-main); cursor: pointer; }
+        .compact-checkbox input[type="checkbox"] { cursor: pointer; width: 16px; height: 16px; }
+
+        /* Folder Picker Status */
+        .folder-status { font-size: 12px; color: var(--text-muted); margin-top: 6px; word-break: break-all; }
+
+        /* Buttons */
+        .btn-primary { width: 100%; background-color: var(--brand-main); color: var(--bg-color); border: none; padding: 14px; border-radius: 8px; font-size: 16px; font-weight: 600; cursor: pointer; transition: background-color 0.2s; display: flex; justify-content: center; align-items: center; gap: 8px; text-decoration: none; }
+        .btn-primary:hover { background-color: var(--brand-hover); }
+        .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+
+        /* Workspace */
+        .workspace { flex: 1; background-color: var(--surface-color); border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
+        .workspace-header { padding: 16px 24px; border-bottom: 1px solid var(--border-color); font-weight: 500; display: flex; justify-content: space-between; align-items: center; }
+        .cropper-container-wrapper { width: 100%; height: 520px; background-color: #ffffff; display: flex; align-items: center; justify-content: center; color: var(--text-muted); transition: background-color 0.2s; position: relative; }
+        #imageToCrop { max-width: 100%; max-height: 100%; display: none; }
+
+        /* Inline Output Area */
+        #outputArea { padding: 24px; border-top: 1px solid var(--border-color); display: none; background-color: rgba(16, 185, 129, 0.1); }
+        .success-title { color: var(--success); display: flex; align-items: center; gap: 8px; margin: 0 0 12px 0; }
+        .stats { font-size: 14px; line-height: 1.6; margin-bottom: 16px; }
+        .download-btn { background-color: var(--success); color: white; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: 600; display: inline-flex; align-items: center; gap: 8px; transition: background 0.2s; }
+        .download-btn:hover { background-color: #059669; }
+
+        .cropper-view-box, .cropper-canvas { background-color: var(--cropper-bg-color, transparent); }
+    </style>
+</head>
+<body>
+
+    <header>
+        <div class="logo">
+            <div class="logo-dot"></div>
+            News UK <span class="header-title">Image Generator</span>
+        </div>
+        <button class="icon-btn" id="themeToggle" title="Toggle Dark Mode">
+            <span class="material-icons" id="themeIcon">dark_mode</span>
+        </button>
+    </header>
+
+    <div class="app-container">
+        <div class="sidebar">
+            
+            <div class="control-group">
+                <label class="main-label">1. Brand Name (Optional)</label>
+                <input type="text" id="brandInput" placeholder="e.g. Rolex">
+            </div>
+
+            <!-- UPDATED MAX-KB SIZES HERE -->
+            <div class="control-group">
+                <label class="main-label" for="sizeSelector">2. Select Format</label>
+                <select id="sizeSelector">
+                    <option value="content_driver" data-width="1200" data-height="627" data-max-kb="150">Content Driver (1200 x 627) - Max 150KB</option>
+                    <option value="apple_news" data-width="900" data-height="1125" data-max-kb="500">Apple News (900 x 1125) - Max 500KB</option>
+                    <option value="social_feed" data-width="1200" data-height="630" data-max-kb="30000">Social Feed (1200 x 630) - Max 30MB</option>
+                    <option value="reel" data-width="1080" data-height="1920" data-max-kb="30000">Reel (1080 x 1920) - Max 30MB</option>
+                </select>
+            </div>
+
+            <div class="control-group">
+                <label class="main-label">3. Upload Image</label>
+                <div class="file-upload-wrapper">
+                    <span class="material-icons upload-icon">cloud_upload</span>
+                    <div style="font-weight: 500; font-size: 14px;">Click or drag image here</div>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 2px;">JPEG, PNG, WEBP</div>
+                    <input type="file" id="imageUpload" accept="image/*">
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label class="main-label">4. Workspace Mode</label>
+                <label class="compact-checkbox">
+                    <input type="checkbox" id="modeImageCheckbox">
+                    <span>Enable "Move Image" & Extend Background</span>
+                </label>
+                
+                <div id="extendedBgTools" style="display: none; margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-color);">
+                    <div class="color-tools">
+                        <input type="color" id="bgColorPicker" value="#ffffff" title="Choose color">
+                        <button class="btn-secondary" id="autoColorBtn" title="Auto detect color from image edge">
+                            <span class="material-icons" style="font-size: 18px;">auto_awesome</span> Match
+                        </button>
+                        <button class="btn-secondary" id="eyeDropperBtn" title="Sample color from screen">
+                            <span class="material-icons" style="font-size: 18px;">colorize</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label class="main-label">5. Output Folder (Optional)</label>
+                <button class="btn-secondary" id="selectFolderBtn" style="width: 100%;">
+                    <span class="material-icons" style="font-size: 18px;">folder_open</span> Select Save Folder
+                </button>
+                <div class="folder-status" id="folderStatusText">Saving to default Downloads</div>
+            </div>
+
+            <button id="generateBtn" class="btn-primary" style="display: none;">
+                <span class="material-icons">auto_fix_high</span>
+                Generate & Compress
+            </button>
+        </div>
+
+        <div class="workspace">
+            <div class="workspace-header">
+                <span id="workspaceHeader">Workspace (Awaiting Image)</span>
+            </div>
+            
+            <div class="cropper-container-wrapper" id="cropperWrapper">
+                <span id="emptyStateText">No image uploaded yet.</span>
+                <img id="imageToCrop" src="">
+            </div>
+
+            <div id="outputArea">
+                <h3 class="success-title"><span class="material-icons">check_circle</span> Image Ready!</h3>
+                <div class="stats" id="statsText"></div>
+                <a id="downloadLink" class="download-btn" href="#" download="image.jpg">
+                    <span class="material-icons">download</span> Download File
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cropper.js Library -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+    <script>
+        // --- Theme Logic ---
+        const themeToggle = document.getElementById('themeToggle');
+        const themeIcon = document.getElementById('themeIcon');
+        if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+            document.documentElement.setAttribute('data-theme', 'dark');
+            themeIcon.textContent = 'light_mode';
+        }
+        themeToggle.addEventListener('click', () => {
+            if (document.documentElement.getAttribute('data-theme') === 'dark') {
+                document.documentElement.removeAttribute('data-theme');
+                themeIcon.textContent = 'dark_mode';
+            } else {
+                document.documentElement.setAttribute('data-theme', 'dark');
+                themeIcon.textContent = 'light_mode';
+            }
+        });
+
+        // --- Core Elements ---
+        let cropper;
+        let loadedImageElement = null;
+        let dirHandle = null; 
+
+        const brandInput = document.getElementById('brandInput');
+        const imageUpload = document.getElementById('imageUpload');
+        const imageToCrop = document.getElementById('imageToCrop');
+        const generateBtn = document.getElementById('generateBtn');
+        const sizeSelector = document.getElementById('sizeSelector');
+        
+        const modeImageCheckbox = document.getElementById('modeImageCheckbox');
+        const extendedBgTools = document.getElementById('extendedBgTools');
+        const bgColorPicker = document.getElementById('bgColorPicker');
+        const autoColorBtn = document.getElementById('autoColorBtn');
+        const eyeDropperBtn = document.getElementById('eyeDropperBtn');
+        
+        const selectFolderBtn = document.getElementById('selectFolderBtn');
+        const folderStatusText = document.getElementById('folderStatusText');
+        
+        const outputArea = document.getElementById('outputArea');
+        const statsText = document.getElementById('statsText');
+        const downloadLink = document.getElementById('downloadLink');
+
+        // --- Cropper Setup ---
+        function initCropper() {
+            if (cropper) { cropper.destroy(); }
+            const isMoveMode = modeImageCheckbox.checked;
+            const selectedOption = sizeSelector.options[sizeSelector.selectedIndex];
+            const targetWidth = parseInt(selectedOption.getAttribute('data-width'));
+            const targetHeight = parseInt(selectedOption.getAttribute('data-height'));
+
+            document.getElementById('workspaceHeader').innerText = isMoveMode ? "Drag the image to position" : "Position and frame your image";
+
+            cropper = new Cropper(imageToCrop, {
+                aspectRatio: targetWidth / targetHeight,
+                viewMode: isMoveMode ? 0 : 1, 
+                dragMode: isMoveMode ? 'move' : 'crop',
+                toggleDragModeOnDblclick: false,
+                zoomOnWheel: isMoveMode,
+                autoCropArea: 1,
+                background: false,
+                ready: function() {
+                    updateBackgroundColor(isMoveMode ? bgColorPicker.value : 'transparent');
+                }
+            });
+        }
+
+        modeImageCheckbox.addEventListener('change', (e) => {
+            extendedBgTools.style.display = e.target.checked ? 'block' : 'none';
+            if (loadedImageElement) initCropper();
+        });
+
+        // --- Background Color logic ---
+        function updateBackgroundColor(color) {
+            if (color !== 'transparent') {
+                bgColorPicker.value = color;
+                document.getElementById('cropperWrapper').style.backgroundColor = color;
+            } else {
+                document.getElementById('cropperWrapper').style.backgroundColor = ''; 
+            }
+            document.documentElement.style.setProperty('--cropper-bg-color', color);
+            if (cropper && cropper.container) {
+                const viewBox = cropper.container.querySelector('.cropper-view-box');
+                const canvasBox = cropper.container.querySelector('.cropper-canvas');
+                if (viewBox) viewBox.style.backgroundColor = color;
+                if (canvasBox) canvasBox.style.backgroundColor = color;
+            }
+        }
+        bgColorPicker.addEventListener('input', (e) => updateBackgroundColor(e.target.value));
+
+        // Auto color matching
+        function detectCornerColor(img) {
+            const canvas = document.createElement('canvas');
+            const ctx = canvas.getContext('2d');
+            canvas.width = img.naturalWidth || img.width;
+            canvas.height = img.naturalHeight || img.height;
+            ctx.drawImage(img, 0, 0);
+            const w = canvas.width, h = canvas.height;
+            const corners = [
+                ctx.getImageData(0, 0, 1, 1).data,
+                ctx.getImageData(w - 1, 0, 1, 1).data,
+                ctx.getImageData(0, h - 1, 1, 1).data,
+                ctx.getImageData(w - 1, h - 1, 1, 1).data
+            ];
+            let r = 0, g = 0, b = 0;
+            corners.forEach(c => { r += c[0]; g += c[1]; b += c[2]; });
+            r = Math.round(r / 4); g = Math.round(g / 4); b = Math.round(b / 4);
+            if (r > 240 && g > 240 && b > 240) return "#ffffff";
+            if (r < 15 && g < 15 && b < 15) return "#000000";
+            return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+        }
+
+        autoColorBtn.addEventListener('click', () => {
+            if (loadedImageElement) updateBackgroundColor(detectCornerColor(loadedImageElement));
+        });
+
+        eyeDropperBtn.addEventListener('click', async () => {
+            if ('EyeDropper' in window) {
+                try {
+                    const eyeDropper = new EyeDropper();
+                    const result = await eyeDropper.open();
+                    updateBackgroundColor(result.sRGBHex);
+                } catch (e) {}
+            }
+        });
+
+        // --- Folder Picker ---
+        selectFolderBtn.addEventListener('click', async () => {
+            if ('showDirectoryPicker' in window) {
+                try {
+                    dirHandle = await window.showDirectoryPicker();
+                    folderStatusText.innerText = `Saving to: ${dirHandle.name}`;
+                    folderStatusText.style.color = "var(--success)";
+                } catch (err) {}
+            } else {
+                alert('Folder selection is supported in Chrome or Edge browsers.');
+            }
+        });
+
+        // --- File Upload ---
+        imageUpload.addEventListener('change', (e) => {
+            const files = e.target.files;
+            if (files && files.length > 0) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    imageToCrop.src = event.target.result;
+                    imageToCrop.style.display = 'block';
+                    document.getElementById('emptyStateText').style.display = 'none';
+                    generateBtn.style.display = 'flex';
+                    outputArea.style.display = 'none';
+                    
+                    loadedImageElement = new Image();
+                    loadedImageElement.onload = () => {
+                        bgColorPicker.value = detectCornerColor(loadedImageElement);
+                        initCropper();
+                    };
+                    loadedImageElement.src = event.target.result;
+                };
+                reader.readAsDataURL(files[0]);
+            }
+        });
+
+        sizeSelector.addEventListener('change', () => {
+            if (loadedImageElement) initCropper();
+        });
+
+        // --- Generation & Compression ---
+        generateBtn.addEventListener('click', async () => {
+            if (!cropper) return;
+
+            generateBtn.innerHTML = '<span class="material-icons">hourglass_empty</span> Compressing...';
+            generateBtn.disabled = true;
+
+            const selectedOption = sizeSelector.options[sizeSelector.selectedIndex];
+            const targetWidth = parseInt(selectedOption.getAttribute('data-width'));
+            const targetHeight = parseInt(selectedOption.getAttribute('data-height'));
+            const maxKb = parseInt(selectedOption.getAttribute('data-max-kb')) || 150;
+            const sizeName = selectedOption.value;
+
+            const canvas = cropper.getCroppedCanvas({
+                width: targetWidth,
+                height: targetHeight,
+                fillColor: modeImageCheckbox.checked ? bgColorPicker.value : '#ffffff',
+                imageSmoothingEnabled: true,
+                imageSmoothingQuality: 'high'
+            });
+
+            const MAX_BYTES = maxKb * 1024;
+            let quality = 0.95; 
+            let finalBlob = null;
+
+            const getBlob = (qual) => {
+                return new Promise((resolve, reject) => {
+                    try {
+                        canvas.toBlob((blob) => {
+                            if (blob) resolve(blob);
+                            else reject(new Error("Canvas export failed"));
+                        }, 'image/jpeg', qual);
+                    } catch (err) {
+                        reject(err);
+                    }
+                });
+            };
+
+            try {
+                while (quality > 0.1) {
+                    finalBlob = await getBlob(quality);
+                    if (finalBlob.size <= MAX_BYTES) break; 
+                    quality -= 0.05; 
+                }
+
+                const brandVal = brandInput.value.trim().replace(/\s+/g, '_');
+                const prefix = brandVal ? `${brandVal}_` : '';
+                const fileName = `${prefix}${sizeName}.jpg`;
+
+                // Handle direct folder saving
+                let savedToFolderMsg = "";
+                if (dirHandle) {
+                    try {
+                        const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
+                        const writable = await fileHandle.createWritable();
+                        await writable.write(finalBlob);
+                        await writable.close();
+                        savedToFolderMsg = `<br><br><span style="color:var(--success); font-weight:bold;">✓ Saved automatically to: ${dirHandle.name}/${fileName}</span>`;
+                    } catch (err) {
+                        console.error("Could not write file to directory:", err);
+                    }
+                }
+
+                statsText.innerHTML = `
+                    <strong>Generated File:</strong> ${fileName}<br>
+                    <strong>Final Size:</strong> ${(finalBlob.size / 1024).toFixed(2)} KB (Max ${maxKb >= 1000 ? maxKb/1000 + 'MB' : maxKb + 'KB'})<br>
+                    <strong>Dimensions:</strong> ${targetWidth}x${targetHeight}px
+                    ${savedToFolderMsg}
+                `;
+                
+                const url = URL.createObjectURL(finalBlob);
+                downloadLink.href = url;
+                downloadLink.download = fileName;
+
+                outputArea.style.display = 'block';
+                
+            } catch (error) {
+                alert("An error occurred during compression.");
+            }
+
+            generateBtn.innerHTML = '<span class="material-icons">auto_fix_high</span> Generate & Compress';
+            generateBtn.disabled = false;
+        });
+    </script>
+</body>
+</html>
