@@ -74,6 +74,13 @@
         .file-upload-wrapper input[type="file"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
         .upload-icon { font-size: 28px; color: var(--text-muted); margin-bottom: 4px; }
 
+        /* Template Style Grid */
+        .style-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+        .style-thumbnail { border: 2px solid var(--border-color); border-radius: 6px; overflow: hidden; cursor: pointer; background: var(--bg-color); transition: all 0.2s; height: 100px; display: flex; align-items: center; justify-content: center; }
+        .style-thumbnail img { max-width: 100%; max-height: 100%; object-fit: contain; }
+        .style-thumbnail:hover { border-color: var(--text-muted); }
+        .style-thumbnail.active { border-color: var(--brand-main); box-shadow: 0 0 0 2px var(--brand-main); }
+
         /* Color Controls */
         .color-tools { display: flex; gap: 8px; align-items: center; }
         input[type="color"] { -webkit-appearance: none; border: 1px solid var(--border-color); width: 42px; height: 42px; border-radius: 8px; cursor: pointer; padding: 2px; background: none; }
@@ -96,7 +103,12 @@
 
         /* Workspace */
         .workspace { flex: 1; background-color: var(--surface-color); border-radius: 12px; border: 1px solid var(--border-color); display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); }
-        .workspace-header { padding: 16px 24px; border-bottom: 1px solid var(--border-color); font-weight: 500; display: flex; justify-content: space-between; align-items: center; }
+        .workspace-header { padding: 12px 24px; border-bottom: 1px solid var(--border-color); font-weight: 500; display: flex; justify-content: space-between; align-items: center; min-height: 57px; }
+        
+        .zoom-controls { display: flex; gap: 6px; align-items: center; }
+        .zoom-btn { background: var(--bg-color); border: 1px solid var(--border-color); color: var(--text-main); padding: 6px 10px; border-radius: 6px; cursor: pointer; font-size: 12px; font-weight: 600; display: flex; align-items: center; gap: 4px; }
+        .zoom-btn:hover { background: var(--border-color); }
+
         .cropper-container-wrapper { width: 100%; height: 520px; background-color: #ffffff; display: flex; align-items: center; justify-content: center; color: var(--text-muted); transition: background-color 0.2s; position: relative; }
         #imageToCrop { max-width: 100%; max-height: 100%; display: none; }
 
@@ -130,15 +142,23 @@
                 <input type="text" id="brandInput" placeholder="e.g. Rolex">
             </div>
 
-            <!-- UPDATED MAX-KB SIZES HERE -->
             <div class="control-group">
                 <label class="main-label" for="sizeSelector">2. Select Format</label>
                 <select id="sizeSelector">
                     <option value="content_driver" data-width="1200" data-height="627" data-max-kb="150">Content Driver (1200 x 627) - Max 150KB</option>
+                    <option value="shop_now_300x250" data-width="300" data-height="250" data-max-kb="150">Shop Now (300 x 250) - Max 150KB</option>
+                    <option value="shop_now_300x600" data-width="300" data-height="600" data-max-kb="150">Shop Now (300 x 600) - Max 150KB</option>
                     <option value="apple_news" data-width="900" data-height="1125" data-max-kb="500">Apple News (900 x 1125) - Max 500KB</option>
                     <option value="social_feed" data-width="1200" data-height="630" data-max-kb="30000">Social Feed (1200 x 630) - Max 30MB</option>
                     <option value="reel" data-width="1080" data-height="1920" data-max-kb="30000">Reel (1080 x 1920) - Max 30MB</option>
                 </select>
+            </div>
+
+            <div class="control-group" id="stylesGroup" style="display: none;">
+                <label class="main-label">Template Style</label>
+                <div class="style-grid" id="styleGrid">
+                    <!-- Populated automatically by JS -->
+                </div>
             </div>
 
             <div class="control-group">
@@ -188,6 +208,12 @@
         <div class="workspace">
             <div class="workspace-header">
                 <span id="workspaceHeader">Workspace (Awaiting Image)</span>
+                
+                <div class="zoom-controls" id="zoomControls" style="display: none;">
+                    <button class="zoom-btn" id="zoomOutBtn" title="Zoom Out"><span class="material-icons" style="font-size:16px;">remove</span></button>
+                    <button class="zoom-btn" id="zoomInBtn" title="Zoom In"><span class="material-icons" style="font-size:16px;">add</span></button>
+                    <button class="zoom-btn" id="resetZoomBtn" title="Reset Image Position"><span class="material-icons" style="font-size:16px;">restart_alt</span> Reset</button>
+                </div>
             </div>
             
             <div class="cropper-container-wrapper" id="cropperWrapper">
@@ -226,9 +252,27 @@
             }
         });
 
+        // --- Template Definitions ---
+        const templatesData = {
+            'shop_now_300x250': [
+                'Luxury_Newsletter_300x250_1.png',
+                'Luxury_Newsletter_300x250_2.png',
+                'Luxury_Newsletter_300x250_3.png',
+                'Luxury_Newsletter_300x250_4.png',
+                'Luxury_Newsletter_300x250_5.png'
+            ],
+            'shop_now_300x600': [
+                'Luxury_Newsletter_300x600_1.png',
+                'Luxury_Newsletter_300x600_2.png',
+                'Luxury_Newsletter_300x600_3.png',
+                'Luxury_Newsletter_300x600_4.png'
+            ]
+        };
+
         // --- Core Elements ---
         let cropper;
         let loadedImageElement = null;
+        let activeTemplateElement = null;
         let dirHandle = null; 
 
         const brandInput = document.getElementById('brandInput');
@@ -236,6 +280,9 @@
         const imageToCrop = document.getElementById('imageToCrop');
         const generateBtn = document.getElementById('generateBtn');
         const sizeSelector = document.getElementById('sizeSelector');
+        
+        const stylesGroup = document.getElementById('stylesGroup');
+        const styleGrid = document.getElementById('styleGrid');
         
         const modeImageCheckbox = document.getElementById('modeImageCheckbox');
         const extendedBgTools = document.getElementById('extendedBgTools');
@@ -250,6 +297,79 @@
         const statsText = document.getElementById('statsText');
         const downloadLink = document.getElementById('downloadLink');
 
+        const zoomControls = document.getElementById('zoomControls');
+        const zoomInBtn = document.getElementById('zoomInBtn');
+        const zoomOutBtn = document.getElementById('zoomOutBtn');
+        const resetZoomBtn = document.getElementById('resetZoomBtn');
+
+        // --- Handle Template Switching & Live Preview ---
+        function updateLiveOverlay() {
+            if (!cropper || !cropper.container) return;
+            const viewBox = cropper.container.querySelector('.cropper-view-box');
+            if (!viewBox) return;
+
+            let overlay = viewBox.querySelector('.template-overlay');
+            
+            if (!overlay) {
+                overlay = document.createElement('img');
+                overlay.className = 'template-overlay';
+                overlay.style.position = 'absolute';
+                overlay.style.top = '0';
+                overlay.style.left = '0';
+                overlay.style.width = '100%';
+                overlay.style.height = '100%';
+                overlay.style.pointerEvents = 'none'; 
+                overlay.style.zIndex = '999';
+                viewBox.appendChild(overlay);
+            }
+
+            if (activeTemplateElement) {
+                overlay.src = activeTemplateElement.src;
+                overlay.style.display = 'block';
+            } else {
+                overlay.style.display = 'none';
+            }
+        }
+
+        function loadTemplatesForSize(sizeName) {
+            styleGrid.innerHTML = '';
+            activeTemplateElement = null;
+
+            if (templatesData[sizeName]) {
+                stylesGroup.style.display = 'block';
+                templatesData[sizeName].forEach((fileName, index) => {
+                    const thumb = document.createElement('div');
+                    thumb.className = `style-thumbnail ${index === 0 ? 'active' : ''}`;
+                    
+                    const img = document.createElement('img');
+                    img.src = fileName; 
+                    
+                    // Simple Error Handler just in case a file is missing
+                    img.onerror = function() {
+                        thumb.style.background = '#fee2e2';
+                        thumb.style.border = '2px dashed #ef4444';
+                        thumb.innerHTML = `<div style="font-size: 10px; color: #b91c1c; text-align: center; padding: 4px;">File Missing:<br>${fileName}</div>`;
+                    };
+                    
+                    if (index === 0) activeTemplateElement = img; 
+
+                    thumb.appendChild(img);
+                    thumb.addEventListener('click', () => {
+                        document.querySelectorAll('.style-thumbnail').forEach(el => el.classList.remove('active'));
+                        thumb.classList.add('active');
+                        activeTemplateElement = img;
+                        updateLiveOverlay(); 
+                    });
+                    styleGrid.appendChild(thumb);
+                });
+            } else {
+                stylesGroup.style.display = 'none';
+                updateLiveOverlay(); 
+            }
+        }
+
+        loadTemplatesForSize(sizeSelector.value);
+
         // --- Cropper Setup ---
         function initCropper() {
             if (cropper) { cropper.destroy(); }
@@ -258,21 +378,31 @@
             const targetWidth = parseInt(selectedOption.getAttribute('data-width'));
             const targetHeight = parseInt(selectedOption.getAttribute('data-height'));
 
-            document.getElementById('workspaceHeader').innerText = isMoveMode ? "Drag the image to position" : "Position and frame your image";
+            document.getElementById('workspaceHeader').innerText = isMoveMode ? "Drag image to position, or use zoom buttons" : "Position and frame your image";
+            zoomControls.style.display = isMoveMode ? 'flex' : 'none';
 
             cropper = new Cropper(imageToCrop, {
                 aspectRatio: targetWidth / targetHeight,
                 viewMode: isMoveMode ? 0 : 1, 
                 dragMode: isMoveMode ? 'move' : 'crop',
+                cropBoxMovable: !isMoveMode,    
+                cropBoxResizable: !isMoveMode,  
                 toggleDragModeOnDblclick: false,
                 zoomOnWheel: isMoveMode,
+                wheelZoomRatio: 0.08,           
                 autoCropArea: 1,
                 background: false,
                 ready: function() {
                     updateBackgroundColor(isMoveMode ? bgColorPicker.value : 'transparent');
+                    updateLiveOverlay();
                 }
             });
         }
+
+        // Dedicated Zoom Buttons
+        zoomInBtn.addEventListener('click', () => { if (cropper) cropper.zoom(0.1); });
+        zoomOutBtn.addEventListener('click', () => { if (cropper) cropper.zoom(-0.1); });
+        resetZoomBtn.addEventListener('click', () => { if (cropper) cropper.reset(); });
 
         modeImageCheckbox.addEventListener('change', (e) => {
             extendedBgTools.style.display = e.target.checked ? 'block' : 'none';
@@ -370,6 +500,8 @@
         });
 
         sizeSelector.addEventListener('change', () => {
+            const sizeName = sizeSelector.value;
+            loadTemplatesForSize(sizeName);
             if (loadedImageElement) initCropper();
         });
 
@@ -394,65 +526,57 @@
                 imageSmoothingQuality: 'high'
             });
 
+            // Draw template overlay if active
+            if (activeTemplateElement && activeTemplateElement.complete && activeTemplateElement.naturalWidth !== 0) {
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(activeTemplateElement, 0, 0, targetWidth, targetHeight);
+            }
+
             const MAX_BYTES = maxKb * 1024;
             let quality = 0.95; 
             let finalBlob = null;
 
             const getBlob = (qual) => {
-                return new Promise((resolve, reject) => {
-                    try {
-                        canvas.toBlob((blob) => {
-                            if (blob) resolve(blob);
-                            else reject(new Error("Canvas export failed"));
-                        }, 'image/jpeg', qual);
-                    } catch (err) {
-                        reject(err);
-                    }
+                return new Promise((resolve) => {
+                    canvas.toBlob((blob) => resolve(blob), 'image/jpeg', qual);
                 });
             };
 
-            try {
-                while (quality > 0.1) {
-                    finalBlob = await getBlob(quality);
-                    if (finalBlob.size <= MAX_BYTES) break; 
-                    quality -= 0.05; 
-                }
-
-                const brandVal = brandInput.value.trim().replace(/\s+/g, '_');
-                const prefix = brandVal ? `${brandVal}_` : '';
-                const fileName = `${prefix}${sizeName}.jpg`;
-
-                // Handle direct folder saving
-                let savedToFolderMsg = "";
-                if (dirHandle) {
-                    try {
-                        const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
-                        const writable = await fileHandle.createWritable();
-                        await writable.write(finalBlob);
-                        await writable.close();
-                        savedToFolderMsg = `<br><br><span style="color:var(--success); font-weight:bold;">✓ Saved automatically to: ${dirHandle.name}/${fileName}</span>`;
-                    } catch (err) {
-                        console.error("Could not write file to directory:", err);
-                    }
-                }
-
-                statsText.innerHTML = `
-                    <strong>Generated File:</strong> ${fileName}<br>
-                    <strong>Final Size:</strong> ${(finalBlob.size / 1024).toFixed(2)} KB (Max ${maxKb >= 1000 ? maxKb/1000 + 'MB' : maxKb + 'KB'})<br>
-                    <strong>Dimensions:</strong> ${targetWidth}x${targetHeight}px
-                    ${savedToFolderMsg}
-                `;
-                
-                const url = URL.createObjectURL(finalBlob);
-                downloadLink.href = url;
-                downloadLink.download = fileName;
-
-                outputArea.style.display = 'block';
-                
-            } catch (error) {
-                alert("An error occurred during compression.");
+            while (quality > 0.1) {
+                finalBlob = await getBlob(quality);
+                if (finalBlob.size <= MAX_BYTES) break; 
+                quality -= 0.05; 
             }
 
+            const brandVal = brandInput.value.trim().replace(/\s+/g, '_');
+            const prefix = brandVal ? `${brandVal}_` : '';
+            const fileName = `${prefix}${sizeName}.jpg`;
+
+            let savedToFolderMsg = "";
+            if (dirHandle) {
+                try {
+                    const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(finalBlob);
+                    await writable.close();
+                    savedToFolderMsg = `<br><br><span style="color:var(--success); font-weight:bold;">✓ Saved automatically to: ${dirHandle.name}/${fileName}</span>`;
+                } catch (err) {
+                    console.error("Could not write file to directory:", err);
+                }
+            }
+
+            statsText.innerHTML = `
+                <strong>Generated File:</strong> ${fileName}<br>
+                <strong>Final Size:</strong> ${(finalBlob.size / 1024).toFixed(2)} KB (Max ${maxKb >= 1000 ? maxKb/1000 + 'MB' : maxKb + 'KB'})<br>
+                <strong>Dimensions:</strong> ${targetWidth}x${targetHeight}px
+                ${savedToFolderMsg}
+            `;
+            
+            const url = URL.createObjectURL(finalBlob);
+            downloadLink.href = url;
+            downloadLink.download = fileName;
+
+            outputArea.style.display = 'block';
             generateBtn.innerHTML = '<span class="material-icons">auto_fix_high</span> Generate & Compress';
             generateBtn.disabled = false;
         });
