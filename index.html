@@ -252,20 +252,20 @@
             }
         });
 
-        // --- Template Definitions ---
+        // --- ADBLOCK-SAFE TEMPLATE DEFINITIONS ---
         const templatesData = {
             'shop_now_300x250': [
-                'Luxury_Newsletter_300x250_1.png',
-                'Luxury_Newsletter_300x250_2.png',
-                'Luxury_Newsletter_300x250_3.png',
-                'Luxury_Newsletter_300x250_4.png',
-                'Luxury_Newsletter_300x250_5.png'
+                'style_sq_1.png',
+                'style_sq_2.png',
+                'style_sq_3.png',
+                'style_sq_4.png',
+                'style_sq_5.png'
             ],
             'shop_now_300x600': [
-                'Luxury_Newsletter_300x600_1.png',
-                'Luxury_Newsletter_300x600_2.png',
-                'Luxury_Newsletter_300x600_3.png',
-                'Luxury_Newsletter_300x600_4.png'
+                'style_vert_1.png',
+                'style_vert_2.png',
+                'style_vert_3.png',
+                'style_vert_4.png'
             ]
         };
 
@@ -344,7 +344,6 @@
                     const img = document.createElement('img');
                     img.src = fileName; 
                     
-                    // Simple Error Handler just in case a file is missing
                     img.onerror = function() {
                         thumb.style.background = '#fee2e2';
                         thumb.style.border = '2px dashed #ef4444';
@@ -526,7 +525,6 @@
                 imageSmoothingQuality: 'high'
             });
 
-            // Draw template overlay if active
             if (activeTemplateElement && activeTemplateElement.complete && activeTemplateElement.naturalWidth !== 0) {
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(activeTemplateElement, 0, 0, targetWidth, targetHeight);
@@ -537,46 +535,59 @@
             let finalBlob = null;
 
             const getBlob = (qual) => {
-                return new Promise((resolve) => {
-                    canvas.toBlob((blob) => resolve(blob), 'image/jpeg', qual);
+                return new Promise((resolve, reject) => {
+                    try {
+                        canvas.toBlob((blob) => {
+                            if (blob) resolve(blob);
+                            else reject(new Error("Canvas export failed"));
+                        }, 'image/jpeg', qual);
+                    } catch (err) {
+                        reject(err);
+                    }
                 });
             };
 
-            while (quality > 0.1) {
-                finalBlob = await getBlob(quality);
-                if (finalBlob.size <= MAX_BYTES) break; 
-                quality -= 0.05; 
-            }
-
-            const brandVal = brandInput.value.trim().replace(/\s+/g, '_');
-            const prefix = brandVal ? `${brandVal}_` : '';
-            const fileName = `${prefix}${sizeName}.jpg`;
-
-            let savedToFolderMsg = "";
-            if (dirHandle) {
-                try {
-                    const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
-                    const writable = await fileHandle.createWritable();
-                    await writable.write(finalBlob);
-                    await writable.close();
-                    savedToFolderMsg = `<br><br><span style="color:var(--success); font-weight:bold;">✓ Saved automatically to: ${dirHandle.name}/${fileName}</span>`;
-                } catch (err) {
-                    console.error("Could not write file to directory:", err);
+            try {
+                while (quality > 0.1) {
+                    finalBlob = await getBlob(quality);
+                    if (finalBlob.size <= MAX_BYTES) break; 
+                    quality -= 0.05; 
                 }
+
+                const brandVal = brandInput.value.trim().replace(/\s+/g, '_');
+                const prefix = brandVal ? `${brandVal}_` : '';
+                const fileName = `${prefix}${sizeName}.jpg`;
+
+                let savedToFolderMsg = "";
+                if (dirHandle) {
+                    try {
+                        const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
+                        const writable = await fileHandle.createWritable();
+                        await writable.write(finalBlob);
+                        await writable.close();
+                        savedToFolderMsg = `<br><br><span style="color:var(--success); font-weight:bold;">✓ Saved automatically to: ${dirHandle.name}/${fileName}</span>`;
+                    } catch (err) {
+                        console.error("Could not write file to directory:", err);
+                    }
+                }
+
+                statsText.innerHTML = `
+                    <strong>Generated File:</strong> ${fileName}<br>
+                    <strong>Final Size:</strong> ${(finalBlob.size / 1024).toFixed(2)} KB (Max ${maxKb >= 1000 ? maxKb/1000 + 'MB' : maxKb + 'KB'})<br>
+                    <strong>Dimensions:</strong> ${targetWidth}x${targetHeight}px
+                    ${savedToFolderMsg}
+                `;
+                
+                const url = URL.createObjectURL(finalBlob);
+                downloadLink.href = url;
+                downloadLink.download = fileName;
+
+                outputArea.style.display = 'block';
+                
+            } catch (error) {
+                alert("An error occurred during compression.");
             }
 
-            statsText.innerHTML = `
-                <strong>Generated File:</strong> ${fileName}<br>
-                <strong>Final Size:</strong> ${(finalBlob.size / 1024).toFixed(2)} KB (Max ${maxKb >= 1000 ? maxKb/1000 + 'MB' : maxKb + 'KB'})<br>
-                <strong>Dimensions:</strong> ${targetWidth}x${targetHeight}px
-                ${savedToFolderMsg}
-            `;
-            
-            const url = URL.createObjectURL(finalBlob);
-            downloadLink.href = url;
-            downloadLink.download = fileName;
-
-            outputArea.style.display = 'block';
             generateBtn.innerHTML = '<span class="material-icons">auto_fix_high</span> Generate & Compress';
             generateBtn.disabled = false;
         });
