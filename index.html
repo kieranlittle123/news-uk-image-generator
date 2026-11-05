@@ -74,13 +74,6 @@
         .file-upload-wrapper input[type="file"] { position: absolute; top: 0; left: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
         .upload-icon { font-size: 28px; color: var(--text-muted); margin-bottom: 4px; }
 
-        /* Template Style Grid */
-        .style-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
-        .style-thumbnail { border: 2px solid var(--border-color); border-radius: 6px; overflow: hidden; cursor: pointer; background: var(--bg-color); transition: all 0.2s; height: 100px; display: flex; align-items: center; justify-content: center; }
-        .style-thumbnail img { max-width: 100%; max-height: 100%; object-fit: contain; }
-        .style-thumbnail:hover { border-color: var(--text-muted); }
-        .style-thumbnail.active { border-color: var(--brand-main); box-shadow: 0 0 0 2px var(--brand-main); }
-
         /* Color Controls */
         .color-tools { display: flex; gap: 8px; align-items: center; }
         input[type="color"] { -webkit-appearance: none; border: 1px solid var(--border-color); width: 42px; height: 42px; border-radius: 8px; cursor: pointer; padding: 2px; background: none; }
@@ -146,19 +139,10 @@
                 <label class="main-label" for="sizeSelector">2. Select Format</label>
                 <select id="sizeSelector">
                     <option value="content_driver" data-width="1200" data-height="627" data-max-kb="150">Content Driver (1200 x 627) - Max 150KB</option>
-                    <option value="shop_now_300x250" data-width="300" data-height="250" data-max-kb="150">Shop Now (300 x 250) - Max 150KB</option>
-                    <option value="shop_now_300x600" data-width="300" data-height="600" data-max-kb="150">Shop Now (300 x 600) - Max 150KB</option>
                     <option value="apple_news" data-width="900" data-height="1125" data-max-kb="500">Apple News (900 x 1125) - Max 500KB</option>
                     <option value="social_feed" data-width="1200" data-height="630" data-max-kb="30000">Social Feed (1200 x 630) - Max 30MB</option>
                     <option value="reel" data-width="1080" data-height="1920" data-max-kb="30000">Reel (1080 x 1920) - Max 30MB</option>
                 </select>
-            </div>
-
-            <div class="control-group" id="stylesGroup" style="display: none;">
-                <label class="main-label">Template Style</label>
-                <div class="style-grid" id="styleGrid">
-                    <!-- Populated automatically by JS -->
-                </div>
             </div>
 
             <div class="control-group">
@@ -252,27 +236,9 @@
             }
         });
 
-        // --- ADBLOCK-SAFE TEMPLATE DEFINITIONS (.png.png fix) ---
-        const templatesData = {
-            'shop_now_300x250': [
-                'style_sq_1.png.png',
-                'style_sq_2.png.png',
-                'style_sq_3.png.png',
-                'style_sq_4.png.png',
-                'style_sq_5.png.png'
-            ],
-            'shop_now_300x600': [
-                'style_vert_1.png.png',
-                'style_vert_2.png.png',
-                'style_vert_3.png.png',
-                'style_vert_4.png.png'
-            ]
-        };
-
         // --- Core Elements ---
         let cropper;
         let loadedImageElement = null;
-        let activeTemplateElement = null;
         let dirHandle = null; 
 
         const brandInput = document.getElementById('brandInput');
@@ -280,9 +246,6 @@
         const imageToCrop = document.getElementById('imageToCrop');
         const generateBtn = document.getElementById('generateBtn');
         const sizeSelector = document.getElementById('sizeSelector');
-        
-        const stylesGroup = document.getElementById('stylesGroup');
-        const styleGrid = document.getElementById('styleGrid');
         
         const modeImageCheckbox = document.getElementById('modeImageCheckbox');
         const extendedBgTools = document.getElementById('extendedBgTools');
@@ -301,73 +264,6 @@
         const zoomInBtn = document.getElementById('zoomInBtn');
         const zoomOutBtn = document.getElementById('zoomOutBtn');
         const resetZoomBtn = document.getElementById('resetZoomBtn');
-
-        // --- Handle Template Switching & Live Preview ---
-        function updateLiveOverlay() {
-            if (!cropper || !cropper.container) return;
-            const viewBox = cropper.container.querySelector('.cropper-view-box');
-            if (!viewBox) return;
-
-            let overlay = viewBox.querySelector('.template-overlay');
-            
-            if (!overlay) {
-                overlay = document.createElement('img');
-                overlay.className = 'template-overlay';
-                overlay.style.position = 'absolute';
-                overlay.style.top = '0';
-                overlay.style.left = '0';
-                overlay.style.width = '100%';
-                overlay.style.height = '100%';
-                overlay.style.pointerEvents = 'none'; 
-                overlay.style.zIndex = '999';
-                viewBox.appendChild(overlay);
-            }
-
-            if (activeTemplateElement) {
-                overlay.src = activeTemplateElement.src;
-                overlay.style.display = 'block';
-            } else {
-                overlay.style.display = 'none';
-            }
-        }
-
-        function loadTemplatesForSize(sizeName) {
-            styleGrid.innerHTML = '';
-            activeTemplateElement = null;
-
-            if (templatesData[sizeName]) {
-                stylesGroup.style.display = 'block';
-                templatesData[sizeName].forEach((fileName, index) => {
-                    const thumb = document.createElement('div');
-                    thumb.className = `style-thumbnail ${index === 0 ? 'active' : ''}`;
-                    
-                    const img = document.createElement('img');
-                    img.src = fileName; 
-                    
-                    img.onerror = function() {
-                        thumb.style.background = '#fee2e2';
-                        thumb.style.border = '2px dashed #ef4444';
-                        thumb.innerHTML = `<div style="font-size: 10px; color: #b91c1c; text-align: center; padding: 4px;">File Missing:<br>${fileName}</div>`;
-                    };
-                    
-                    if (index === 0) activeTemplateElement = img; 
-
-                    thumb.appendChild(img);
-                    thumb.addEventListener('click', () => {
-                        document.querySelectorAll('.style-thumbnail').forEach(el => el.classList.remove('active'));
-                        thumb.classList.add('active');
-                        activeTemplateElement = img;
-                        updateLiveOverlay(); 
-                    });
-                    styleGrid.appendChild(thumb);
-                });
-            } else {
-                stylesGroup.style.display = 'none';
-                updateLiveOverlay(); 
-            }
-        }
-
-        loadTemplatesForSize(sizeSelector.value);
 
         // --- Cropper Setup ---
         function initCropper() {
@@ -393,12 +289,10 @@
                 background: false,
                 ready: function() {
                     updateBackgroundColor(isMoveMode ? bgColorPicker.value : 'transparent');
-                    updateLiveOverlay();
                 }
             });
         }
 
-        // Dedicated Zoom Buttons
         zoomInBtn.addEventListener('click', () => { if (cropper) cropper.zoom(0.1); });
         zoomOutBtn.addEventListener('click', () => { if (cropper) cropper.zoom(-0.1); });
         resetZoomBtn.addEventListener('click', () => { if (cropper) cropper.reset(); });
@@ -426,7 +320,6 @@
         }
         bgColorPicker.addEventListener('input', (e) => updateBackgroundColor(e.target.value));
 
-        // Auto color matching
         function detectCornerColor(img) {
             const canvas = document.createElement('canvas');
             const ctx = canvas.getContext('2d');
@@ -499,12 +392,10 @@
         });
 
         sizeSelector.addEventListener('change', () => {
-            const sizeName = sizeSelector.value;
-            loadTemplatesForSize(sizeName);
             if (loadedImageElement) initCropper();
         });
 
-        // --- Generation & Compression ---
+        // --- BINARY SEARCH COMPRESSION ENGINE ---
         generateBtn.addEventListener('click', async () => {
             if (!cropper) return;
 
@@ -525,69 +416,70 @@
                 imageSmoothingQuality: 'high'
             });
 
-            if (activeTemplateElement && activeTemplateElement.complete && activeTemplateElement.naturalWidth !== 0) {
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(activeTemplateElement, 0, 0, targetWidth, targetHeight);
-            }
-
             const MAX_BYTES = maxKb * 1024;
-            let quality = 0.95; 
             let finalBlob = null;
 
             const getBlob = (qual) => {
-                return new Promise((resolve, reject) => {
-                    try {
-                        canvas.toBlob((blob) => {
-                            if (blob) resolve(blob);
-                            else reject(new Error("Canvas export failed"));
-                        }, 'image/jpeg', qual);
-                    } catch (err) {
-                        reject(err);
-                    }
+                return new Promise((resolve) => {
+                    canvas.toBlob((blob) => resolve(blob), 'image/jpeg', qual);
                 });
             };
 
-            try {
-                while (quality > 0.1) {
-                    finalBlob = await getBlob(quality);
-                    if (finalBlob.size <= MAX_BYTES) break; 
-                    quality -= 0.05; 
-                }
+            // 1. First test: Does it naturally fit at maximum quality (95%)?
+            finalBlob = await getBlob(0.95);
 
-                const brandVal = brandInput.value.trim().replace(/\s+/g, '_');
-                const prefix = brandVal ? `${brandVal}_` : '';
-                const fileName = `${prefix}${sizeName}.jpg`;
+            if (finalBlob.size > MAX_BYTES) {
+                // 2. It doesn't fit. Initiate Binary Search for the optimal quality setting.
+                let minQ = 0.10; // Floor limit to prevent completely corrupted outputs
+                let maxQ = 0.95;
+                let bestBlob = null;
 
-                let savedToFolderMsg = "";
-                if (dirHandle) {
-                    try {
-                        const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
-                        const writable = await fileHandle.createWritable();
-                        await writable.write(finalBlob);
-                        await writable.close();
-                        savedToFolderMsg = `<br><br><span style="color:var(--success); font-weight:bold;">✓ Saved automatically to: ${dirHandle.name}/${fileName}</span>`;
-                    } catch (err) {
-                        console.error("Could not write file to directory:", err);
+                // 7 iterations guarantees we find the precise decimal percentage that fits
+                for (let i = 0; i < 7; i++) {
+                    let midQ = (minQ + maxQ) / 2;
+                    let tempBlob = await getBlob(midQ);
+                    
+                    if (tempBlob.size <= MAX_BYTES) {
+                        bestBlob = tempBlob; 
+                        minQ = midQ; // It fits! Raise the floor to see if we can get even higher quality
+                    } else {
+                        maxQ = midQ; // Too big! Lower the ceiling
                     }
                 }
-
-                statsText.innerHTML = `
-                    <strong>Generated File:</strong> ${fileName}<br>
-                    <strong>Final Size:</strong> ${(finalBlob.size / 1024).toFixed(2)} KB (Max ${maxKb >= 1000 ? maxKb/1000 + 'MB' : maxKb + 'KB'})<br>
-                    <strong>Dimensions:</strong> ${targetWidth}x${targetHeight}px
-                    ${savedToFolderMsg}
-                `;
                 
-                const url = URL.createObjectURL(finalBlob);
-                downloadLink.href = url;
-                downloadLink.download = fileName;
-
-                outputArea.style.display = 'block';
-                
-            } catch (error) {
-                alert("An error occurred during compression.");
+                // Fallback to the best found blob, or the absolute minimum attempt
+                finalBlob = bestBlob || await getBlob(0.10);
             }
 
+            const brandVal = brandInput.value.trim().replace(/\s+/g, '_');
+            const prefix = brandVal ? `${brandVal}_` : '';
+            const fileName = `${prefix}${sizeName}.jpg`;
+
+            let savedToFolderMsg = "";
+            if (dirHandle) {
+                try {
+                    const fileHandle = await dirHandle.getFileHandle(fileName, { create: true });
+                    const writable = await fileHandle.createWritable();
+                    await writable.write(finalBlob);
+                    await writable.close();
+                    savedToFolderMsg = `<br><br><span style="color:var(--success); font-weight:bold;">✓ Saved automatically to: ${dirHandle.name}/${fileName}</span>`;
+                } catch (err) {
+                    console.error("Could not write file to directory:", err);
+                }
+            }
+
+            statsText.innerHTML = `
+                <strong>Generated File:</strong> ${fileName}<br>
+                <strong>Final Size:</strong> ${(finalBlob.size / 1024).toFixed(2)} KB (Max ${maxKb >= 1000 ? maxKb/1000 + 'MB' : maxKb + 'KB'})<br>
+                <strong>Dimensions:</strong> ${targetWidth}x${targetHeight}px
+                ${savedToFolderMsg}
+            `;
+            
+            const url = URL.createObjectURL(finalBlob);
+            downloadLink.href = url;
+            downloadLink.download = fileName;
+
+            outputArea.style.display = 'block';
             generateBtn.innerHTML = '<span class="material-icons">auto_fix_high</span> Generate & Compress';
             generateBtn.disabled = false;
         });
